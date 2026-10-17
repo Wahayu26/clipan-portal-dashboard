@@ -23,6 +23,11 @@ Dokumen ini menjelaskan arsitektur dan langkah deployment **Clipan Portal Dashbo
    * Terdapat kartu `+ Add New App` untuk mendaftarkan URL atau proyek baru kapan saja langsung dari browser (tersimpan di `localStorage`).
 6. **Grid View & List View**:
    * Pilihan tampilan kotak kartu modern atau tabel ringkas sesuai preferensi analis.
+7. **Portal Security, Login Animated Screen & Brute-Force Defense**:
+   * **Animated Cyber SSO Screen**: Dilengkapi efek ambient orbs dinamis, scanner grid, scanline CRT, glowing logo hexagon berputar, dan cursor-following card spotlight.
+   * **Manajemen Sesi Otomatis**: Sesi terenkripsi & tersinkronisasi (12 jam standar, 7 hari jika *Remember Me* aktif) dengan pemantauan otomatis setiap 30 detik.
+   * **Anti Brute-Force Rate Limiting**: Proteksi akun maksimal 5 kali percobaan gagal dengan peringatan dinamis dan auto-lockout 60 detik disertai live countdown timer.
+   * **Profil Dinamis & Logout**: Terintegrasi ke header dashboard dengan status role dan opsi Sign Out / Ganti Akun.
 
 ---
 
@@ -137,29 +142,25 @@ systemctl reload httpd
 
 Di folder `clipan-portal-dashboard` sudah disediakan `Dockerfile` siap pakai.
 
-1. Build Docker image:
-   ```bash
-   docker build -t clipan-portal-dashboard:latest .
-   ```
-2. Jalankan container:
-   ```bash
-   docker run -d --name clipan-portal -p 8090:80 --restart unless-stopped clipan-portal-dashboard:latest
-   ```
-3. Di Apache, cukup arahkan proxy:
-   ```apache
-   ProxyPass /portal/ http://127.0.0.1:8090/
-   ProxyPassReverse /portal/ http://127.0.0.1:8090/
-   ```
-
 ---
 
-## 3. Hasil & Cara Mengakses
+## 4. Cara Update Cepat di Server (`dc-uat-dwilab-app-001`)
 
-Buka di browser:
-👉 **`https://soc.clipan.co.id/`** (atau `https://soc.clipan.co.id/portal/`)
+Jika ada update terbaru dari GitHub repository (`https://github.com/Wahayu26/clipan-portal-dashboard.git`), jalankan langkah berikut di terminal server:
 
-Anda akan disuguhkan dashboard portal yang memukau seperti pada gambar referensi, di mana Anda dan seluruh tim NOC/SOC dapat:
-1. Membuka **Sentinel SOC Command Center** cukup dengan 1 klik.
-2. Membuka **Zabbix, Grafana, NMS, Weathermap, ERP, Incident**, dll. langsung dari satu tempat.
-3. Mencari nama alat atau server dengan `Ctrl + K`.
-4. Menyematkan (*pin*) aplikasi yang paling sering dipakai ke daftar *Favorites*.
+```bash
+cd /var/www/html/portal
+
+# 1. Pastikan git safe directory terdaftar
+git config --global --add safe.directory /var/www/html/portal
+
+# 2. Reset dan pull kode terbaru dari GitHub
+git reset --hard origin/main
+git pull origin main
+
+# 3. Rebuild dan restart kontainer portal Docker
+docker compose up -d --build
+
+# 4. Verifikasi kontainer sudah berjalan normal
+docker ps --filter "name=clipan-portal"
+```
