@@ -27,6 +27,15 @@ export interface ActivityLog {
   timestamp: number;
 }
 
+export interface UserProfile {
+  id?: number;
+  name: string;
+  username: string;
+  role?: string;
+  token?: string;
+  isLoggedIn: boolean;
+}
+
 export type ViewMode = 'grid' | 'list';
 export type SortOption = 'name-asc' | 'name-desc' | 'category' | 'most-used' | 'recent';
 export type ActiveTab = 'home' | 'all' | 'favorites' | 'recent' | 'categories';

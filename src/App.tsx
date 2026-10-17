@@ -8,6 +8,7 @@ import {
 import type { 
   AppItem, 
   ActivityLog, 
+  UserProfile,
   ViewMode, 
   SortOption, 
   ActiveTab 
@@ -20,6 +21,7 @@ import { AppCard } from './components/AppCard';
 import { AppListView } from './components/AppListView';
 import { RightSidebar } from './components/RightSidebar';
 import { AddAppModal } from './components/AddAppModal';
+import { LoginModal } from './components/LoginModal';
 import { NotificationsModal, HelpModal, SettingsModal } from './components/Modals';
 
 const STORAGE_KEYS = {
@@ -27,6 +29,7 @@ const STORAGE_KEYS = {
   ACTIVITIES: 'clipan_portal_activities_v1',
   THEME: 'clipan_portal_theme',
   VIEW_MODE: 'clipan_portal_view_mode',
+  USER: 'clipan_portal_user',
 };
 
 export default function App() {
@@ -34,6 +37,48 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.THEME);
     return saved !== null ? saved === 'true' : true;
+  });
+
+  // User Profile state (Synchronizes with Sentinel SOC & localStorage)
+  const [user, setUser] = useState<UserProfile>(() => {
+    try {
+      // 1. Cek portal user tersimpan
+      const portalUser = localStorage.getItem(STORAGE_KEYS.USER);
+      if (portalUser) return JSON.parse(portalUser);
+
+      // 2. Cek apakah ada session login aktif dari Sentinel SOC Dashboard
+      const socAuthRaw = localStorage.getItem('soc-auth');
+      if (socAuthRaw) {
+        const parsed = JSON.parse(socAuthRaw);
+        if (parsed?.state?.user) {
+          return {
+            id: parsed.state.user.id,
+            name: parsed.state.user.name || parsed.state.user.username,
+            username: parsed.state.user.username,
+            role: parsed.state.user.role || 'SOC Analyst',
+            token: parsed.state.token,
+            isLoggedIn: true,
+          };
+        }
+      }
+
+      // Default jika belum login
+      return {
+        id: 1,
+        name: 'Wahyu Satria Aji',
+        username: 'aji',
+        role: 'SOC Analyst L2',
+        isLoggedIn: true,
+      };
+    } catch {
+      return {
+        id: 1,
+        name: 'Wahyu Satria Aji',
+        username: 'aji',
+        role: 'SOC Analyst L2',
+        isLoggedIn: true,
+      };
+    }
   });
 
   // Apps state with localStorage persistence
@@ -67,6 +112,7 @@ export default function App() {
 
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -92,9 +138,32 @@ export default function App() {
     localStorage.setItem(STORAGE_KEYS.VIEW_MODE, viewMode);
   }, [viewMode]);
 
+  // Save user to localStorage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+  }, [user]);
+
+  // Login handler
+  const handleLoginSuccess = (loggedInUser: UserProfile) => {
+    setUser(loggedInUser);
+  };
+
+  // Logout handler
+  const handleLogout = () => {
+    const guestUser: UserProfile = {
+      name: 'Guest',
+      username: 'guest',
+      role: 'Guest Mode',
+      isLoggedIn: false,
+    };
+    setUser(guestUser);
+    localStorage.removeItem(STORAGE_KEYS.USER);
+    localStorage.removeItem('soc-auth');
+    document.cookie = 'soc_auth=; path=/; max-age=0; SameSite=Lax';
+  };
+
   // Launch App handler
   const handleLaunchApp = (app: AppItem, newTab: boolean = true) => {
-    // 1. Update app launch count & timestamp
     const now = Date.now();
     setApps((prev) =>
       prev.map((item) =>
@@ -104,7 +173,6 @@ export default function App() {
       )
     );
 
-    // 2. Add to activities
     const newActivity: ActivityLog = {
       id: 'act-' + now,
       appId: app.id,
@@ -116,7 +184,6 @@ export default function App() {
     };
     setActivities((prev) => [newActivity, ...prev.filter((a) => a.appId !== app.id)].slice(0, 10));
 
-    // 3. Open URL
     if (newTab) {
       window.open(app.url, '_blank', 'noopener,noreferrer');
     } else {
@@ -124,13 +191,11 @@ export default function App() {
     }
   };
 
-  // Launch by ID
   const handleLaunchById = (appId: string) => {
     const target = apps.find((a) => a.id === appId);
     if (target) handleLaunchApp(target, true);
   };
 
-  // Toggle Favorite
   const handleToggleFavorite = (appId: string) => {
     setApps((prev) =>
       prev.map((item) =>
@@ -139,17 +204,14 @@ export default function App() {
     );
   };
 
-  // Add Custom App
   const handleAddApp = (newApp: AppItem) => {
     setApps((prev) => [newApp, ...prev]);
   };
 
-  // Delete Custom App
   const handleDeleteCustom = (appId: string) => {
     setApps((prev) => prev.filter((a) => a.id !== appId));
   };
 
-  // Reset Data to Defaults
   const handleResetData = () => {
     setApps(INITIAL_APPS);
     setActivities(INITIAL_ACTIVITIES);
@@ -161,7 +223,6 @@ export default function App() {
   const displayedApps = useMemo(() => {
     let result = [...apps];
 
-    // Sidebar activeTab filtering
     if (activeTab === 'favorites') {
       result = result.filter((a) => a.isFavorite);
     } else if (activeTab === 'recent') {
@@ -169,12 +230,10 @@ export default function App() {
       result = result.filter((a) => recentIds.includes(a.id));
     }
 
-    // Category tab filtering (if not 'all')
     if (selectedCategory !== 'all') {
       result = result.filter((a) => a.category === selectedCategory);
     }
 
-    // Search query filtering
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       result = result.filter(
@@ -186,7 +245,6 @@ export default function App() {
       );
     }
 
-    // Sorting
     result.sort((a, b) => {
       switch (sortOption) {
         case 'name-asc':
@@ -206,7 +264,6 @@ export default function App() {
     return result;
   }, [apps, activities, activeTab, selectedCategory, searchQuery, sortOption]);
 
-  // Category counts
   const counts = useMemo(() => {
     return {
       all: apps.length,
@@ -243,7 +300,9 @@ export default function App() {
           setSearchQuery={setSearchQuery}
           isDarkMode={isDarkMode}
           setIsDarkMode={setIsDarkMode}
-          userName="Aji"
+          user={user}
+          onOpenLogin={() => setIsLoginModalOpen(true)}
+          onLogout={handleLogout}
         />
 
         <div className="portal-body">
@@ -385,7 +444,6 @@ export default function App() {
                 />
               )
             ) : (
-              /* Empty State */
               <div 
                 style={{
                   padding: '60px 20px',
@@ -443,6 +501,12 @@ export default function App() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAddApp={handleAddApp}
+      />
+
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
       />
 
       <NotificationsModal
