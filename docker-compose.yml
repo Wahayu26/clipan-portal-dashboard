@@ -1,0 +1,10 @@
+services:
+  portal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: clipan-portal-dashboard:latest
+    container_name: clipan-portal
+    restart: unless-stopped
+    ports:
+      - "8090:80"
