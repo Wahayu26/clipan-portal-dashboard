@@ -21,8 +21,9 @@ import { AppCard } from './components/AppCard';
 import { AppListView } from './components/AppListView';
 import { RightSidebar } from './components/RightSidebar';
 import { AddAppModal } from './components/AddAppModal';
-import { LoginModal } from './components/LoginModal';
+import { LoginPage } from './components/LoginPage';
 import { NotificationsModal, HelpModal, SettingsModal } from './components/Modals';
+import { isSessionValid, terminateSession, saveUserSession } from './utils/security';
 
 const STORAGE_KEYS = {
   APPS: 'clipan_portal_apps_v1',
@@ -39,44 +40,53 @@ export default function App() {
     return saved !== null ? saved === 'true' : true;
   });
 
-  // User Profile state (Synchronizes with Sentinel SOC & localStorage)
+  // User Profile state with session validation
   const [user, setUser] = useState<UserProfile>(() => {
     try {
       // 1. Cek portal user tersimpan
-      const portalUser = localStorage.getItem(STORAGE_KEYS.USER);
-      if (portalUser) return JSON.parse(portalUser);
+      const portalUserRaw = localStorage.getItem(STORAGE_KEYS.USER);
+      if (portalUserRaw) {
+        const parsed: UserProfile = JSON.parse(portalUserRaw);
+        if (isSessionValid(parsed)) {
+          return parsed;
+        }
+      }
 
       // 2. Cek apakah ada session login aktif dari Sentinel SOC Dashboard
       const socAuthRaw = localStorage.getItem('soc-auth');
       if (socAuthRaw) {
         const parsed = JSON.parse(socAuthRaw);
-        if (parsed?.state?.user) {
-          return {
+        if (parsed?.state?.user && parsed?.state?.token) {
+          const syncedUser: UserProfile = {
             id: parsed.state.user.id,
             name: parsed.state.user.name || parsed.state.user.username,
             username: parsed.state.user.username,
             role: parsed.state.user.role || 'SOC Analyst',
             token: parsed.state.token,
             isLoggedIn: true,
+            loginTimestamp: Date.now(),
+            sessionExpiresAt: Date.now() + 12 * 60 * 60 * 1000,
           };
+          saveUserSession(syncedUser);
+          return syncedUser;
         }
       }
 
       // Default jika belum login
       return {
-        id: 1,
-        name: 'Wahyu Satria Aji',
-        username: 'aji',
-        role: 'SOC Analyst L2',
-        isLoggedIn: true,
+        id: 0,
+        name: '',
+        username: '',
+        role: '',
+        isLoggedIn: false,
       };
     } catch {
       return {
-        id: 1,
-        name: 'Wahyu Satria Aji',
-        username: 'aji',
-        role: 'SOC Analyst L2',
-        isLoggedIn: true,
+        id: 0,
+        name: '',
+        username: '',
+        role: '',
+        isLoggedIn: false,
       };
     }
   });
@@ -112,7 +122,6 @@ export default function App() {
 
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -138,28 +147,34 @@ export default function App() {
     localStorage.setItem(STORAGE_KEYS.VIEW_MODE, viewMode);
   }, [viewMode]);
 
-  // Save user to localStorage
+  // Periodic session validity check (every 30 seconds)
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+    if (!user.isLoggedIn) return;
+
+    const interval = setInterval(() => {
+      if (!isSessionValid(user)) {
+        handleLogout();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, [user]);
 
-  // Login handler
-  const handleLoginSuccess = (loggedInUser: UserProfile) => {
-    setUser(loggedInUser);
+  // Login success handler
+  const handleLoginSuccess = (authenticatedUser: UserProfile) => {
+    setUser(authenticatedUser);
   };
 
   // Logout handler
   const handleLogout = () => {
-    const guestUser: UserProfile = {
-      name: 'Guest',
-      username: 'guest',
-      role: 'Guest Mode',
+    terminateSession();
+    setUser({
+      id: 0,
+      name: '',
+      username: '',
+      role: '',
       isLoggedIn: false,
-    };
-    setUser(guestUser);
-    localStorage.removeItem(STORAGE_KEYS.USER);
-    localStorage.removeItem('soc-auth');
-    document.cookie = 'soc_auth=; path=/; max-age=0; SameSite=Lax';
+    });
   };
 
   // Launch App handler
@@ -275,6 +290,12 @@ export default function App() {
     };
   }, [apps]);
 
+  // If user is not authenticated, display the full animated Portal Login Page!
+  if (!user.isLoggedIn || !isSessionValid(user)) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  // Once authenticated, render the full Clipan Portal Dashboard
   return (
     <div className="portal-layout">
       {/* 1. Left Sidebar */}
@@ -301,7 +322,7 @@ export default function App() {
           isDarkMode={isDarkMode}
           setIsDarkMode={setIsDarkMode}
           user={user}
-          onOpenLogin={() => setIsLoginModalOpen(true)}
+          onOpenLogin={() => {}}
           onLogout={handleLogout}
         />
 
@@ -501,12 +522,6 @@ export default function App() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAddApp={handleAddApp}
-      />
-
-      <LoginModal
-        isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
-        onLoginSuccess={handleLoginSuccess}
       />
 
       <NotificationsModal

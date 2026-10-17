@@ -34,6 +34,8 @@ export interface UserProfile {
   role?: string;
   token?: string;
   isLoggedIn: boolean;
+  loginTimestamp?: number;
+  sessionExpiresAt?: number;
 }
 
 export type ViewMode = 'grid' | 'list';
