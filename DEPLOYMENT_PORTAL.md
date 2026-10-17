@@ -130,9 +130,11 @@ Pastikan rute root (`/`) atau `/portal/` mengarah ke portal ini, sementara semua
     RequestHeader set X-Forwarded-Port "443"
 
     # =========================================================================
-    # 1. BERSIHKAN URL LAMA: Lempar /soc-dashboard-finale/login.php ke Portal (/)
+    # 1. TANGKAP URL LAMA /soc-dashboard-finale/login.php -> BUKA PORTAL LANGSUNG (Port 8090)
+    # Tanpa redirect berputar, langsung menyajikan Clipan Portal Dashboard!
     # =========================================================================
-    RedirectMatch 302 ^/soc-dashboard-finale/login\.php.*$ https://soc.clipan.co.id/
+    ProxyPass /soc-dashboard-finale/login.php http://127.0.0.1:8090/
+    ProxyPassReverse /soc-dashboard-finale/login.php http://127.0.0.1:8090/
 
     # =========================================================================
     # 2. SENTINEL SOC COMMAND CENTER NEW v2.0 - FRONTEND (Next.js Port 3000)
