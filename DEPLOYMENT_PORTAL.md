@@ -117,7 +117,25 @@ Pastikan rute root (`/`) atau `/portal/` mengarah ke portal ini, sementara semua
     ProxyPassReverse /app/soc_dashboard_reverb_key ws://127.0.0.1:8080/app/soc_dashboard_reverb_key
 
     # =========================================================================
-    # 5. SENTINEL SOC COMMAND CENTER NEW v2.0 - FRONTEND (Next.js Port 3000)
+    DirectoryIndex index.html index.php dashboard.php home.php default.php index.htm login.php
+
+    <Directory /var/www/html>
+        Options Indexes FollowSymLinks MultiViews
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ProxyPreserveHost On
+    RequestHeader set X-Forwarded-Proto "https"
+    RequestHeader set X-Forwarded-Port "443"
+
+    # =========================================================================
+    # 1. BERSIHKAN URL LAMA: Lempar /soc-dashboard-finale/login.php ke Portal (/)
+    # =========================================================================
+    RedirectMatch 302 ^/soc-dashboard-finale/login\.php.*$ https://soc.clipan.co.id/
+
+    # =========================================================================
+    # 2. SENTINEL SOC COMMAND CENTER NEW v2.0 - FRONTEND (Next.js Port 3000)
     # =========================================================================
     ProxyPass /_next/ http://127.0.0.1:3000/_next/
     ProxyPassReverse /_next/ http://127.0.0.1:3000/_next/
@@ -125,11 +143,8 @@ Pastikan rute root (`/`) atau `/portal/` mengarah ke portal ini, sementara semua
     ProxyPass /overview http://127.0.0.1:3000/overview
     ProxyPassReverse /overview http://127.0.0.1:3000/overview
 
-    ProxyPass /soc-dashboard-finale/login.php http://127.0.0.1:3000/login
-    ProxyPassReverse /soc-dashboard-finale/login.php http://127.0.0.1:3000/login
-
-    ProxyPass /soc-dashboard-finale/ http://127.0.0.1:3000/soc-dashboard-finale
-    ProxyPassReverse /soc-dashboard-finale/ http://127.0.0.1:3000/soc-dashboard-finale
+    ProxyPass /soc-dashboard-finale/ http://127.0.0.1:3000/soc-dashboard-finale/
+    ProxyPassReverse /soc-dashboard-finale/ http://127.0.0.1:3000/soc-dashboard-finale/
 
     ProxyPass /soc-dashboard-finale http://127.0.0.1:3000/soc-dashboard-finale
     ProxyPassReverse /soc-dashboard-finale http://127.0.0.1:3000/soc-dashboard-finale
