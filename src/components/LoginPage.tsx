@@ -82,24 +82,35 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     setErrorMessage(null);
 
     try {
-      // 1. Coba autentikasi ke backend API Laravel (/api/login)
-      const res = await fetch('/api/login', {
+      // 1. Coba autentikasi ke Portal Backend API (/api/portal/login lalu fallback /api/login)
+      let res = await fetch('/api/portal/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({ username: username.trim(), password }),
-      });
+        body: JSON.stringify({ username: username.trim(), password, remember_me: rememberMe }),
+      }).catch(() => null);
+
+      if (!res || res.status === 404) {
+        res = await fetch('/api/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({ username: username.trim(), password, remember_me: rememberMe }),
+        });
+      }
 
       if (res.ok) {
         const data = await res.json();
         const authenticatedUser: UserProfile = {
           id: data.user?.id || 1,
-          name: data.user?.name || username.trim(),
+          name: data.user?.name || data.user?.full_name || username.trim(),
           username: data.user?.username || username.trim(),
-          role: data.user?.role || 'SOC Lead Analyst',
-          token: data.token,
+          role: data.user?.role || 'Admin',
+          token: data.access_token || data.token,
           isLoggedIn: true,
         };
 
