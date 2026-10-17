@@ -125,6 +125,15 @@ Pastikan rute root (`/`) atau `/portal/` mengarah ke portal ini, sementara semua
     ProxyPass /overview http://127.0.0.1:3000/overview
     ProxyPassReverse /overview http://127.0.0.1:3000/overview
 
+    ProxyPass /soc-dashboard-finale/login.php http://127.0.0.1:3000/login
+    ProxyPassReverse /soc-dashboard-finale/login.php http://127.0.0.1:3000/login
+
+    ProxyPass /soc-dashboard-finale/ http://127.0.0.1:3000/soc-dashboard-finale
+    ProxyPassReverse /soc-dashboard-finale/ http://127.0.0.1:3000/soc-dashboard-finale
+
+    ProxyPass /soc-dashboard-finale http://127.0.0.1:3000/soc-dashboard-finale
+    ProxyPassReverse /soc-dashboard-finale http://127.0.0.1:3000/soc-dashboard-finale
+
     ProxyPass /login http://127.0.0.1:3000/login
     ProxyPassReverse /login http://127.0.0.1:3000/login
 
