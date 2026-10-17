@@ -117,7 +117,7 @@ Pastikan rute root (`/`) atau `/portal/` mengarah ke portal ini, sementara semua
     ProxyPassReverse /app/soc_dashboard_reverb_key ws://127.0.0.1:8080/app/soc_dashboard_reverb_key
 
     # =========================================================================
-    DirectoryIndex index.html index.php dashboard.php home.php default.php index.htm login.php
+    DirectoryIndex index.html index.php traffic.php switch.php config.php branch.php dashboard-noc.php dashboard.php home.php default.php index.htm login.php
 
     <Directory /var/www/html>
         Options Indexes FollowSymLinks MultiViews
@@ -130,8 +130,13 @@ Pastikan rute root (`/`) atau `/portal/` mengarah ke portal ini, sementara semua
     RequestHeader set X-Forwarded-Port "443"
 
     # =========================================================================
-    # 1. TANGKAP URL LAMA /soc-dashboard-finale/login.php -> BUKA PORTAL LANGSUNG (Port 8090)
-    # Tanpa redirect berputar, langsung menyajikan Clipan Portal Dashboard!
+    # 1. LARAVEL APPS ENTRYPOINT REDIRECT (/security/ dan /incident/)
+    # =========================================================================
+    RedirectMatch 302 ^/security/?$ https://soc.clipan.co.id/security/public/
+    RedirectMatch 302 ^/incident/?$ https://soc.clipan.co.id/incident/public/
+
+    # =========================================================================
+    # 2. TANGKAP REQUEST LAMA /soc-dashboard-finale/login.php -> BUKA PORTAL (Port 8090)
     # =========================================================================
     ProxyPass /soc-dashboard-finale/login.php http://127.0.0.1:8090/
     ProxyPassReverse /soc-dashboard-finale/login.php http://127.0.0.1:8090/
