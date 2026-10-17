@@ -66,7 +66,7 @@ Pastikan rute root (`/`) atau `/portal/` mengarah ke portal ini, sementara semua
     DocumentRoot /var/www/html
 
     <Directory /var/www/html>
-        Options Indexes FollowSymLinks MultiViews
+        Options FollowSymLinks MultiViews
         AllowOverride All
         Require all granted
     </Directory>
@@ -76,7 +76,36 @@ Pastikan rute root (`/`) atau `/portal/` mengarah ke portal ini, sementara semua
     RequestHeader set X-Forwarded-Port "443"
 
     # =========================================================================
-    # 1. SOC DASHBOARD SERVICE DOCKER
+    # 1. LEGACY REDIRECT: Lempar semua URL lama ke DASHBOARD SOC BARU (/overview)
+    # Tidak lagi merujuk ke soc-dashboard-finale-laravel!
+    # =========================================================================
+    RedirectMatch 302 ^/soc-dashboard-finale.*$ https://soc.clipan.co.id/overview
+    RedirectMatch 302 ^/soc-dashboard-finale-laravel.*$ https://soc.clipan.co.id/overview
+
+    # =========================================================================
+    # 2. BYPASS PROXY UNTUK TOOL NATIVE LOKAL (/var/www/html/...)
+    # =========================================================================
+    ProxyPass /fmg !
+    ProxyPass /palo !
+    ProxyPass /incident !
+    ProxyPass /grafana !
+    ProxyPass /zabbix !
+    ProxyPass /nms !
+    ProxyPass /weather !
+    ProxyPass /rancid !
+    ProxyPass /oxidized !
+    ProxyPass /cacti !
+    ProxyPass /smokeping !
+    ProxyPass /syslog !
+
+    # =========================================================================
+    # 3. BACKEND API & WEBSOCKET PORTAL (Port 8091)
+    # =========================================================================
+    ProxyPass /api/portal/ http://127.0.0.1:8091/api/portal/
+    ProxyPassReverse /api/portal/ http://127.0.0.1:8091/api/portal/
+
+    # =========================================================================
+    # 4. SENTINEL SOC COMMAND CENTER NEW v2.0 - BACKEND API & WEBSOCKETS
     # =========================================================================
     ProxyPass /api/ http://127.0.0.1:8000/api/
     ProxyPassReverse /api/ http://127.0.0.1:8000/api/
@@ -87,8 +116,14 @@ Pastikan rute root (`/`) atau `/portal/` mengarah ke portal ini, sementara semua
     ProxyPass /app/soc_dashboard_reverb_key ws://127.0.0.1:8080/app/soc_dashboard_reverb_key
     ProxyPassReverse /app/soc_dashboard_reverb_key ws://127.0.0.1:8080/app/soc_dashboard_reverb_key
 
+    # =========================================================================
+    # 5. SENTINEL SOC COMMAND CENTER NEW v2.0 - FRONTEND (Next.js Port 3000)
+    # =========================================================================
     ProxyPass /_next/ http://127.0.0.1:3000/_next/
     ProxyPassReverse /_next/ http://127.0.0.1:3000/_next/
+
+    ProxyPass /overview http://127.0.0.1:3000/overview
+    ProxyPassReverse /overview http://127.0.0.1:3000/overview
 
     ProxyPass /login http://127.0.0.1:3000/login
     ProxyPassReverse /login http://127.0.0.1:3000/login
@@ -108,25 +143,18 @@ Pastikan rute root (`/`) atau `/portal/` mengarah ke portal ini, sementara semua
     ProxyPass /health http://127.0.0.1:3000/health
     ProxyPassReverse /health http://127.0.0.1:3000/health
 
-    ProxyPass /overview http://127.0.0.1:3000/overview
-    ProxyPassReverse /overview http://127.0.0.1:3000/overview
-
     # =========================================================================
-    # 2. LANDING PAGE PORTAL DI ROOT (https://soc.clipan.co.id/)
-    # Jika diletakkan di /var/www/html/portal, arahkan root ke /portal:
+    # 6. CLIPAN PORTAL DASHBOARD (Port 8090)
     # =========================================================================
-    DirectoryIndex index.html index.php
+    ProxyPass /portal/ http://127.0.0.1:8090/
+    ProxyPassReverse /portal/ http://127.0.0.1:8090/
 
-    # Jika ditaruh di folder /portal:
-    Alias /portal /var/www/html/portal
-    <Directory /var/www/html/portal>
-        Options FollowSymLinks
-        AllowOverride None
-        Require all granted
-    </Directory>
+    ProxyPass /portal http://127.0.0.1:8090/
+    ProxyPassReverse /portal http://127.0.0.1:8090/
 
-    # Redirect root '/' langsung ke portal jika diinginkan:
-    # RedirectMatch 302 ^/?$ https://soc.clipan.co.id/portal/
+    # Root / -> Proxy langsung ke Portal Dashboard Container (Port 8090)
+    ProxyPass / http://127.0.0.1:8090/
+    ProxyPassReverse / http://127.0.0.1:8090/
 </VirtualHost>
 ```
 
