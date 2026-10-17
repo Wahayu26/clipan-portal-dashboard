@@ -153,7 +153,7 @@ Pastikan rute root (`/`) atau `/portal/` mengarah ke portal ini, sementara semua
     ProxyPassReverse /health http://127.0.0.1:3000/health
 
     # =========================================================================
-    # 6. CLIPAN PORTAL DASHBOARD (Port 8090)
+    # 4. CLIPAN PORTAL DASHBOARD ASSETS & SUBPATH (Port 8090)
     # =========================================================================
     ProxyPass /portal/ http://127.0.0.1:8090/
     ProxyPassReverse /portal/ http://127.0.0.1:8090/
@@ -161,9 +161,23 @@ Pastikan rute root (`/`) atau `/portal/` mengarah ke portal ini, sementara semua
     ProxyPass /portal http://127.0.0.1:8090/
     ProxyPassReverse /portal http://127.0.0.1:8090/
 
-    # Root / -> Proxy langsung ke Portal Dashboard Container (Port 8090)
-    ProxyPass / http://127.0.0.1:8090/
-    ProxyPassReverse / http://127.0.0.1:8090/
+    ProxyPass /assets/ http://127.0.0.1:8090/assets/
+    ProxyPassReverse /assets/ http://127.0.0.1:8090/assets/
+
+    ProxyPass /favicon.svg http://127.0.0.1:8090/favicon.svg
+    ProxyPassReverse /favicon.svg http://127.0.0.1:8090/favicon.svg
+
+    # =========================================================================
+    # 5. KHUSUS ROOT URL (/) SAJA -> PROXY KE PORTAL CONTAINER (Port 8090)
+    # Menggunakan mod_rewrite agar HANYA / yang di-proxy, BUKAN subpath lain!
+    # =========================================================================
+    RewriteEngine On
+    RewriteRule ^/?$ http://127.0.0.1:8090/ [P,L]
+
+    # =========================================================================
+    # SEMUA SUBPATH LAIN (/zabbix-server-dashboard/, /tiket/, /fmg/, dll.)
+    # AKAN DILAYANI LANGSUNG DARI DISK /var/www/html/ OLEH APACHE SECARA NATIVE!
+    # =========================================================================
 </VirtualHost>
 ```
 
