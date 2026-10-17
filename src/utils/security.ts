@@ -100,14 +100,14 @@ export function resetLockoutState(): void {
  */
 export function isSessionValid(user: UserProfile | null): boolean {
   if (!user || !user.isLoggedIn) return false;
-  if (!user.sessionExpiresAt) return false;
+  if (!user.sessionExpiresAt) return true;
   return Date.now() < user.sessionExpiresAt;
 }
 
 /**
  * Persist secure session to storage and cookies
  */
-export function saveUserSession(user: UserProfile, rememberMe: boolean = false): void {
+export function saveUserSession(user: UserProfile, rememberMe: boolean = false): UserProfile {
   const now = Date.now();
   const duration = rememberMe 
     ? SECURITY_CONFIG.REMEMBER_SESSION_DURATION_MS 
@@ -116,18 +116,23 @@ export function saveUserSession(user: UserProfile, rememberMe: boolean = false):
   const sessionUser: UserProfile = {
     ...user,
     isLoggedIn: true,
-    loginTimestamp: now,
-    sessionExpiresAt: now + duration,
+    loginTimestamp: user.loginTimestamp || now,
+    sessionExpiresAt: user.sessionExpiresAt || (now + duration),
   };
 
   localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(sessionUser));
 
   // Set companion authentication flag cookie for proxy alignment
-  const maxAgeSec = Math.floor(duration / 1000);
-  document.cookie = `soc_auth=1; path=/; max-age=${maxAgeSec}; SameSite=Lax; Secure`;
-  document.cookie = `portal_session=active; path=/; max-age=${maxAgeSec}; SameSite=Lax; Secure`;
+  try {
+    const maxAgeSec = Math.floor(duration / 1000);
+    document.cookie = `soc_auth=1; path=/; max-age=${maxAgeSec}; SameSite=Lax; Secure`;
+    document.cookie = `portal_session=active; path=/; max-age=${maxAgeSec}; SameSite=Lax; Secure`;
+  } catch {
+    // ignore in environments without cookie access
+  }
 
   resetLockoutState();
+  return sessionUser;
 }
 
 /**
