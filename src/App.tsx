@@ -1,0 +1,465 @@
+import { useState, useEffect, useMemo } from 'react';
+import { 
+  Plus, 
+  Grid3X3, 
+  List, 
+  Search
+} from 'lucide-react';
+import type { 
+  AppItem, 
+  ActivityLog, 
+  ViewMode, 
+  SortOption, 
+  ActiveTab 
+} from './types';
+import { INITIAL_APPS, INITIAL_ACTIVITIES } from './data/initialApps';
+import { Sidebar } from './components/Sidebar';
+import { Header } from './components/Header';
+import { HeroBanner } from './components/HeroBanner';
+import { AppCard } from './components/AppCard';
+import { AppListView } from './components/AppListView';
+import { RightSidebar } from './components/RightSidebar';
+import { AddAppModal } from './components/AddAppModal';
+import { NotificationsModal, HelpModal, SettingsModal } from './components/Modals';
+
+const STORAGE_KEYS = {
+  APPS: 'clipan_portal_apps_v1',
+  ACTIVITIES: 'clipan_portal_activities_v1',
+  THEME: 'clipan_portal_theme',
+  VIEW_MODE: 'clipan_portal_view_mode',
+};
+
+export default function App() {
+  // Theme state
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.THEME);
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  // Apps state with localStorage persistence
+  const [apps, setApps] = useState<AppItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.APPS);
+      return saved ? JSON.parse(saved) : INITIAL_APPS;
+    } catch {
+      return INITIAL_APPS;
+    }
+  });
+
+  // Activities state with localStorage persistence
+  const [activities, setActivities] = useState<ActivityLog[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.ACTIVITIES);
+      return saved ? JSON.parse(saved) : INITIAL_ACTIVITIES;
+    } catch {
+      return INITIAL_ACTIVITIES;
+    }
+  });
+
+  // UI state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('home');
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    return (localStorage.getItem(STORAGE_KEYS.VIEW_MODE) as ViewMode) || 'grid';
+  });
+  const [sortOption, setSortOption] = useState<SortOption>('most-used');
+
+  // Modal states
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // Sync theme attribute
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+    localStorage.setItem(STORAGE_KEYS.THEME, String(isDarkMode));
+  }, [isDarkMode]);
+
+  // Sync apps to localStorage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.APPS, JSON.stringify(apps));
+  }, [apps]);
+
+  // Sync activities to localStorage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.ACTIVITIES, JSON.stringify(activities));
+  }, [activities]);
+
+  // Save viewMode
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.VIEW_MODE, viewMode);
+  }, [viewMode]);
+
+  // Launch App handler
+  const handleLaunchApp = (app: AppItem, newTab: boolean = true) => {
+    // 1. Update app launch count & timestamp
+    const now = Date.now();
+    setApps((prev) =>
+      prev.map((item) =>
+        item.id === app.id
+          ? { ...item, launchCount: item.launchCount + 1, lastOpenedAt: now }
+          : item
+      )
+    );
+
+    // 2. Add to activities
+    const newActivity: ActivityLog = {
+      id: 'act-' + now,
+      appId: app.id,
+      appName: app.name,
+      category: app.category,
+      iconName: app.iconName,
+      accentColor: app.accentColor,
+      timestamp: now,
+    };
+    setActivities((prev) => [newActivity, ...prev.filter((a) => a.appId !== app.id)].slice(0, 10));
+
+    // 3. Open URL
+    if (newTab) {
+      window.open(app.url, '_blank', 'noopener,noreferrer');
+    } else {
+      window.location.href = app.url;
+    }
+  };
+
+  // Launch by ID
+  const handleLaunchById = (appId: string) => {
+    const target = apps.find((a) => a.id === appId);
+    if (target) handleLaunchApp(target, true);
+  };
+
+  // Toggle Favorite
+  const handleToggleFavorite = (appId: string) => {
+    setApps((prev) =>
+      prev.map((item) =>
+        item.id === appId ? { ...item, isFavorite: !item.isFavorite } : item
+      )
+    );
+  };
+
+  // Add Custom App
+  const handleAddApp = (newApp: AppItem) => {
+    setApps((prev) => [newApp, ...prev]);
+  };
+
+  // Delete Custom App
+  const handleDeleteCustom = (appId: string) => {
+    setApps((prev) => prev.filter((a) => a.id !== appId));
+  };
+
+  // Reset Data to Defaults
+  const handleResetData = () => {
+    setApps(INITIAL_APPS);
+    setActivities(INITIAL_ACTIVITIES);
+    localStorage.removeItem(STORAGE_KEYS.APPS);
+    localStorage.removeItem(STORAGE_KEYS.ACTIVITIES);
+  };
+
+  // Filtered & Sorted Apps
+  const displayedApps = useMemo(() => {
+    let result = [...apps];
+
+    // Sidebar activeTab filtering
+    if (activeTab === 'favorites') {
+      result = result.filter((a) => a.isFavorite);
+    } else if (activeTab === 'recent') {
+      const recentIds = activities.map((act) => act.appId);
+      result = result.filter((a) => recentIds.includes(a.id));
+    }
+
+    // Category tab filtering (if not 'all')
+    if (selectedCategory !== 'all') {
+      result = result.filter((a) => a.category === selectedCategory);
+    }
+
+    // Search query filtering
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(
+        (a) =>
+          a.name.toLowerCase().includes(query) ||
+          a.description.toLowerCase().includes(query) ||
+          a.category.toLowerCase().includes(query) ||
+          a.url.toLowerCase().includes(query)
+      );
+    }
+
+    // Sorting
+    result.sort((a, b) => {
+      switch (sortOption) {
+        case 'name-asc':
+          return a.name.localeCompare(b.name);
+        case 'name-desc':
+          return b.name.localeCompare(a.name);
+        case 'category':
+          return a.category.localeCompare(b.category);
+        case 'recent':
+          return (b.lastOpenedAt || 0) - (a.lastOpenedAt || 0);
+        case 'most-used':
+        default:
+          return b.launchCount - a.launchCount;
+      }
+    });
+
+    return result;
+  }, [apps, activities, activeTab, selectedCategory, searchQuery, sortOption]);
+
+  // Category counts
+  const counts = useMemo(() => {
+    return {
+      all: apps.length,
+      security: apps.filter((a) => a.category === 'security').length,
+      network: apps.filter((a) => a.category === 'network').length,
+      monitoring: apps.filter((a) => a.category === 'monitoring').length,
+      operations: apps.filter((a) => a.category === 'operations').length,
+      favorites: apps.filter((a) => a.isFavorite).length,
+    };
+  }, [apps]);
+
+  return (
+    <div className="portal-layout">
+      {/* 1. Left Sidebar */}
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={(tab) => {
+          setActiveTab(tab);
+          if (tab === 'favorites') setSelectedCategory('all');
+          if (tab === 'recent') setSelectedCategory('all');
+        }}
+        appsCount={apps.length}
+        favoritesCount={counts.favorites}
+        onOpenNotifications={() => setIsNotificationsOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenHelp={() => setIsHelpOpen(true)}
+      />
+
+      {/* 2. Main Content & Right Sidebar Wrapper */}
+      <div className="portal-main-wrapper">
+        {/* Top Header */}
+        <Header
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          isDarkMode={isDarkMode}
+          setIsDarkMode={setIsDarkMode}
+          userName="Aji"
+        />
+
+        <div className="portal-body">
+          {/* Main Content Area */}
+          <main className="portal-content">
+            {/* Hero Banner (Only shown on 'home' tab) */}
+            {activeTab === 'home' && !searchQuery && (
+              <HeroBanner
+                onExplore={() => {
+                  const el = document.getElementById('apps-section');
+                  el?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                onManage={() => setIsAddModalOpen(true)}
+              />
+            )}
+
+            {/* Section Header & Toolbar */}
+            <div id="apps-section" className="toolbar-container">
+              <div>
+                <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                  {activeTab === 'favorites' ? 'Your Favorite Apps' : activeTab === 'recent' ? 'Recently Used Apps' : 'Your Apps'}
+                </h2>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  Showing {displayedApps.length} active applications & telemetry consoles
+                </p>
+              </div>
+
+              {/* Controls: Grid/List Toggle & Sort Dropdown */}
+              <div className="controls-group">
+                <div className="view-toggle">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                    title="Grid view"
+                  >
+                    <Grid3X3 size={16} />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+                    title="List view"
+                  >
+                    <List size={16} />
+                  </button>
+                </div>
+
+                <select
+                  value={sortOption}
+                  onChange={(e) => setSortOption(e.target.value as SortOption)}
+                  className="sort-select"
+                >
+                  <option value="most-used">Sort: Most Used</option>
+                  <option value="name-asc">Sort: Name (A-Z)</option>
+                  <option value="name-desc">Sort: Name (Z-A)</option>
+                  <option value="category">Sort: Category</option>
+                  <option value="recent">Sort: Recently Opened</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Category Filter Pills */}
+            <div className="filter-tabs" style={{ marginBottom: '24px' }}>
+              <button
+                onClick={() => setSelectedCategory('all')}
+                className={`tab-btn ${selectedCategory === 'all' ? 'active' : ''}`}
+              >
+                <span>All Apps</span>
+                <span className="tab-counter">{counts.all}</span>
+              </button>
+
+              <button
+                onClick={() => setSelectedCategory('security')}
+                className={`tab-btn ${selectedCategory === 'security' ? 'active' : ''}`}
+              >
+                <span>Security (SOC)</span>
+                <span className="tab-counter">{counts.security}</span>
+              </button>
+
+              <button
+                onClick={() => setSelectedCategory('network')}
+                className={`tab-btn ${selectedCategory === 'network' ? 'active' : ''}`}
+              >
+                <span>Network (NOC)</span>
+                <span className="tab-counter">{counts.network}</span>
+              </button>
+
+              <button
+                onClick={() => setSelectedCategory('monitoring')}
+                className={`tab-btn ${selectedCategory === 'monitoring' ? 'active' : ''}`}
+              >
+                <span>Monitoring</span>
+                <span className="tab-counter">{counts.monitoring}</span>
+              </button>
+
+              <button
+                onClick={() => setSelectedCategory('operations')}
+                className={`tab-btn ${selectedCategory === 'operations' ? 'active' : ''}`}
+              >
+                <span>Operations & IT</span>
+                <span className="tab-counter">{counts.operations}</span>
+              </button>
+            </div>
+
+            {/* Apps Display: Grid or List */}
+            {displayedApps.length > 0 ? (
+              viewMode === 'grid' ? (
+                <div className="apps-grid">
+                  {displayedApps.map((app) => (
+                    <AppCard
+                      key={app.id}
+                      app={app}
+                      onLaunch={handleLaunchApp}
+                      onToggleFavorite={handleToggleFavorite}
+                      onDeleteCustom={handleDeleteCustom}
+                    />
+                  ))}
+
+                  {/* "Add New App" Card */}
+                  <div
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="add-app-card"
+                  >
+                    <div className="add-app-icon">
+                      <Plus size={22} />
+                    </div>
+                    <div style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                      Add New App
+                    </div>
+                    <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                      Integrate or register any custom internal web app
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <AppListView
+                  apps={displayedApps}
+                  onLaunch={handleLaunchApp}
+                  onToggleFavorite={handleToggleFavorite}
+                />
+              )
+            ) : (
+              /* Empty State */
+              <div 
+                style={{
+                  padding: '60px 20px',
+                  textAlign: 'center',
+                  backgroundColor: 'var(--bg-card)',
+                  border: '1px dashed var(--border-card)',
+                  borderRadius: 'var(--radius-xl)',
+                  margin: '20px 0',
+                }}
+              >
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(99, 102, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', color: 'var(--accent-primary)' }}>
+                  <Search size={24} />
+                </div>
+                <h4 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                  No applications found
+                </h4>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '18px' }}>
+                  No apps matched &ldquo;{searchQuery}&rdquo;. Try another keyword or clear filters.
+                </p>
+                <button 
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedCategory('all');
+                    setActiveTab('home');
+                  }}
+                  className="btn-primary"
+                  style={{ fontSize: '12.5px', padding: '8px 18px' }}
+                >
+                  Clear Filters
+                </button>
+              </div>
+            )}
+          </main>
+
+          {/* 3. Right Sidebar */}
+          <RightSidebar
+            apps={apps}
+            activities={activities}
+            onLaunchApp={handleLaunchById}
+            onOpenHelp={() => setIsHelpOpen(true)}
+            onViewAllFavorites={() => {
+              setActiveTab('favorites');
+              setSelectedCategory('all');
+            }}
+            onViewAllRecent={() => {
+              setActiveTab('recent');
+              setSelectedCategory('all');
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Modals */}
+      <AddAppModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAddApp={handleAddApp}
+      />
+
+      <NotificationsModal
+        isOpen={isNotificationsOpen}
+        onClose={() => setIsNotificationsOpen(false)}
+      />
+
+      <HelpModal
+        isOpen={isHelpOpen}
+        onClose={() => setIsHelpOpen(false)}
+      />
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        onResetData={handleResetData}
+      />
+    </div>
+  );
+}
