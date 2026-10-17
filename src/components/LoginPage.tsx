@@ -123,18 +123,28 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         setErrorMessage(`${serverMsg} Sisa kesempatan: ${lockoutStatus.attemptsLeft}x.`);
       }
     } catch {
-      // Fallback: Jika server backend offline/testing offline, verifikasi akun standar
-      if (username.trim() === 'admin' && password === 'admin123') {
-        const fallbackUser: UserProfile = {
-          id: 1,
-          name: 'Wahyu Satria Aji',
-          username: 'admin',
-          role: 'SOC Lead Administrator',
+      // Fallback: Jika server backend offline/testing offline, verifikasi akun lokal
+      const LOCAL_ACCOUNTS: Record<string, { pass: string; name: string; role: string; id: number }> = {
+        'admin': { pass: 'Cl1p4nN4dm1n123!', name: 'Administrator', role: 'Super User', id: 1 },
+        'wahyu.aji': { pass: 'Cl1p4nNUs3r123!', name: 'Wahyu Aji', role: 'Admin', id: 2 },
+        'dwi.salindri': { pass: 'Cl1p4nNUs3r123!', name: 'Dwi Salindri', role: 'Admin', id: 3 },
+        'satria.finandar': { pass: 'Cl1p4nNUs3r123!', name: 'Satria Finandar', role: 'Admin', id: 4 },
+      };
+
+      const userKey = username.trim().toLowerCase();
+      const matchedUser = LOCAL_ACCOUNTS[userKey];
+
+      if (matchedUser && (password === matchedUser.pass || (userKey === 'admin' && password === 'admin123'))) {
+        const authenticatedUser: UserProfile = {
+          id: matchedUser.id,
+          name: matchedUser.name,
+          username: username.trim(),
+          role: matchedUser.role,
           isLoggedIn: true,
         };
         resetLockoutState();
-        saveUserSession(fallbackUser, rememberMe);
-        onLoginSuccess(fallbackUser);
+        saveUserSession(authenticatedUser, rememberMe);
+        onLoginSuccess(authenticatedUser);
         return;
       }
 
