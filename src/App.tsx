@@ -95,7 +95,18 @@ export default function App() {
   const [apps, setApps] = useState<AppItem[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.APPS);
-      return saved ? JSON.parse(saved) : INITIAL_APPS;
+      if (saved) {
+        const parsed: AppItem[] = JSON.parse(saved);
+        // Ensure URLs always stay synchronized with INITIAL_APPS (e.g. sentinel-soc -> /soc-dashboard-finale/)
+        return parsed.map((item) => {
+          const initial = INITIAL_APPS.find((i) => i.id === item.id);
+          if (initial && (item.id === 'sentinel-soc' || item.url !== initial.url)) {
+            return { ...item, url: initial.url };
+          }
+          return item;
+        });
+      }
+      return INITIAL_APPS;
     } catch {
       return INITIAL_APPS;
     }

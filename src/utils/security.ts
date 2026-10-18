@@ -122,6 +122,32 @@ export function saveUserSession(user: UserProfile, rememberMe: boolean = false):
 
   localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(sessionUser));
 
+  // Synchronize authentication to Sentinel SOC Dashboard (soc-auth Zustand store)
+  try {
+    const socAuthPayload = {
+      state: {
+        token: sessionUser.token || `portal_synced_${sessionUser.id}_${Date.now()}`,
+        user: {
+          id: sessionUser.id,
+          name: sessionUser.name,
+          username: sessionUser.username,
+          role: sessionUser.role,
+          permissions: [
+            'view dashboard',
+            'view firewall',
+            'view crowdstrike',
+            'view cyberark',
+            'view db-monitor',
+          ],
+        },
+      },
+      version: 0,
+    };
+    localStorage.setItem('soc-auth', JSON.stringify(socAuthPayload));
+  } catch {
+    // ignore
+  }
+
   // Set companion authentication flag cookie for proxy alignment
   try {
     const maxAgeSec = Math.floor(duration / 1000);
