@@ -211,6 +211,10 @@ Pastikan rute root (`/`) atau `/portal/` mengarah ke portal ini, sementara semua
     ProxyPass /_next/ http://127.0.0.1:3000/_next/
     ProxyPassReverse /_next/ http://127.0.0.1:3000/_next/
 
+    # Tangkap redirect upstream Load Balancer ke /soc-dashboard-finale/login.php -> Buka Portal (Port 8090)
+    ProxyPass /soc-dashboard-finale/login.php http://127.0.0.1:8090/
+    ProxyPassReverse /soc-dashboard-finale/login.php http://127.0.0.1:8090/
+
     ProxyPass /soc-dashboard-finale/ http://127.0.0.1:3000/soc-dashboard-finale/
     ProxyPassReverse /soc-dashboard-finale/ http://127.0.0.1:3000/soc-dashboard-finale/
 
