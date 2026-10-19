@@ -8,7 +8,7 @@ export const INITIAL_APPS: AppItem[] = [
     id: 'sentinel-soc',
     name: 'Sentinel SOC Command Center',
     description: 'Unified Firewall, CrowdStrike EDR, CyberArk PAM, and DB Telemetry.',
-    url: '/soc-dashboard-finale/',
+    url: '/soc-dashboard-finale/login',
     category: 'security',
     iconName: 'ShieldCheck',
     badge: 'NEW v2.0',

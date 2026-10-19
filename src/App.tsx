@@ -219,12 +219,6 @@ export default function App() {
     };
     setActivities((prev) => [newActivity, ...prev.filter((a) => a.appId !== app.id)].slice(0, 10));
 
-    // Special handoff for Sentinel SOC Command Center
-    if (app.id === 'sentinel-soc') {
-      refreshAuthCookie();
-      saveUserSession(user);
-    }
-
     if (newTab) {
       window.open(app.url, '_blank', 'noopener,noreferrer');
     } else {
