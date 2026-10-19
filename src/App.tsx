@@ -97,14 +97,18 @@ export default function App() {
       const saved = localStorage.getItem(STORAGE_KEYS.APPS);
       if (saved) {
         const parsed: AppItem[] = JSON.parse(saved);
-        // Ensure URLs always stay synchronized with INITIAL_APPS (e.g. sentinel-soc -> /soc-dashboard-finale/)
-        return parsed.map((item) => {
+        const updated = parsed.map((item) => {
           const initial = INITIAL_APPS.find((i) => i.id === item.id);
           if (initial && (item.id === 'sentinel-soc' || item.url !== initial.url)) {
             return { ...item, url: initial.url };
           }
           return item;
         });
+
+        // Automatically append any newly added apps from INITIAL_APPS
+        const existingIds = new Set(updated.map((a) => a.id));
+        const newApps = INITIAL_APPS.filter((a) => !existingIds.has(a.id));
+        return [...updated, ...newApps];
       }
       return INITIAL_APPS;
     } catch {
