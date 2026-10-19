@@ -130,25 +130,86 @@ Pastikan rute root (`/`) atau `/portal/` mengarah ke portal ini, sementara semua
     RequestHeader set X-Forwarded-Port "443"
 
     # =========================================================================
-    # 1. LARAVEL APPS ENTRYPOINT REDIRECT (/security/ dan /incident/)
+    # 1. LARAVEL APPS ENTRYPOINT REDIRECT
     # =========================================================================
     RedirectMatch 302 ^/security/?$ https://soc.clipan.co.id/security/public/
     RedirectMatch 302 ^/incident/?$ https://soc.clipan.co.id/incident/public/
 
     # =========================================================================
-    # 2. TANGKAP REQUEST LAMA /soc-dashboard-finale/login.php -> BUKA PORTAL (Port 8090)
+    # 2. BYPASS PROXY UNTUK TOOL NATIVE LOKAL (/var/www/html/...)
+    # Apache melayani langsung folder-folder ini tanpa diteruskan ke Docker
     # =========================================================================
-    ProxyPass /soc-dashboard-finale/login.php http://127.0.0.1:8090/
-    ProxyPassReverse /soc-dashboard-finale/login.php http://127.0.0.1:8090/
+    ProxyPass /vlan !
+    ProxyPass /wa-alert !
+    ProxyPass /traffic-fgdc !
+    ProxyPass /traffic-isfw !
+    ProxyPass /traffic-branch !
+    ProxyPass /switch !
+    ProxyPass /pushconfig !
+    ProxyPass /dashboard-noc !
+    ProxyPass /room-noc !
+    ProxyPass /noc-office !
+    ProxyPass /interface !
+    ProxyPass /interface-10mb !
+    ProxyPass /fmg !
+    ProxyPass /palo !
+    ProxyPass /ipsec-palo !
+    ProxyPass /ipsec-branch !
+    ProxyPass /incident !
+    ProxyPass /security !
+    ProxyPass /netsec-hub !
+    ProxyPass /grafana !
+    ProxyPass /grafana-ap !
+    ProxyPass /monitor-db !
+    ProxyPass /cpu-memory-librenms !
+    ProxyPass /zabbix !
+    ProxyPass /zabbix-server-dashboard !
+    ProxyPass /nms !
+    ProxyPass /librenms-intelligence-portal !
+    ProxyPass /librenms-port !
+    ProxyPass /weather !
+    ProxyPass /weathermap-new !
+    ProxyPass /rancid !
+    ProxyPass /oxidized !
+    ProxyPass /cacti !
+    ProxyPass /smokeping !
+    ProxyPass /syslog !
+    ProxyPass /netflow !
+    ProxyPass /ping-plotter !
+    ProxyPass /tracert !
+    ProxyPass /temperatur !
+    ProxyPass /erp !
+    ProxyPass /tiket !
+    ProxyPass /logbook !
+    ProxyPass /rca !
+    ProxyPass /kitab !
+    ProxyPass /netasset !
+    ProxyPass /ruckus !
 
     # =========================================================================
-    # 2. SENTINEL SOC COMMAND CENTER NEW v2.0 - FRONTEND (Next.js Port 3000)
+    # 3. BACKEND API & WEBSOCKET PORTAL (Port 8091)
+    # =========================================================================
+    ProxyPass /api/portal/ http://127.0.0.1:8091/api/portal/
+    ProxyPassReverse /api/portal/ http://127.0.0.1:8091/api/portal/
+
+    # =========================================================================
+    # 4. SENTINEL SOC COMMAND CENTER - BACKEND API & WEBSOCKETS (Port 8000 & 8080)
+    # =========================================================================
+    ProxyPass /api/ http://127.0.0.1:8000/api/
+    ProxyPassReverse /api/ http://127.0.0.1:8000/api/
+
+    ProxyPass /storage/ http://127.0.0.1:8000/storage/
+    ProxyPassReverse /storage/ http://127.0.0.1:8000/storage/
+
+    ProxyPass /app/soc_dashboard_reverb_key ws://127.0.0.1:8080/app/soc_dashboard_reverb_key
+    ProxyPassReverse /app/soc_dashboard_reverb_key ws://127.0.0.1:8080/app/soc_dashboard_reverb_key
+
+    # =========================================================================
+    # 5. SENTINEL SOC COMMAND CENTER - FRONTEND (Next.js Port 3000)
+    # Rute project soc-dashboard-finale langsung diarahkan ke Next.js
     # =========================================================================
     ProxyPass /_next/ http://127.0.0.1:3000/_next/
     ProxyPassReverse /_next/ http://127.0.0.1:3000/_next/
-
-    ProxyPass /overview http://127.0.0.1:3000/overview
-    ProxyPassReverse /overview http://127.0.0.1:3000/overview
 
     ProxyPass /soc-dashboard-finale/ http://127.0.0.1:3000/soc-dashboard-finale/
     ProxyPassReverse /soc-dashboard-finale/ http://127.0.0.1:3000/soc-dashboard-finale/
@@ -156,8 +217,8 @@ Pastikan rute root (`/`) atau `/portal/` mengarah ke portal ini, sementara semua
     ProxyPass /soc-dashboard-finale http://127.0.0.1:3000/soc-dashboard-finale
     ProxyPassReverse /soc-dashboard-finale http://127.0.0.1:3000/soc-dashboard-finale
 
-    ProxyPass /login http://127.0.0.1:3000/login
-    ProxyPassReverse /login http://127.0.0.1:3000/login
+    ProxyPass /overview http://127.0.0.1:3000/overview
+    ProxyPassReverse /overview http://127.0.0.1:3000/overview
 
     ProxyPass /firewall http://127.0.0.1:3000/firewall
     ProxyPassReverse /firewall http://127.0.0.1:3000/firewall
@@ -175,9 +236,24 @@ Pastikan rute root (`/`) atau `/portal/` mengarah ke portal ini, sementara semua
     ProxyPassReverse /health http://127.0.0.1:3000/health
 
     # =========================================================================
-    # 4. CLIPAN PORTAL DASHBOARD ASSETS & SUBPATH (Port 8090)
+    # 6. CLIPAN PORTAL DASHBOARD (Vite Port 8090)
+    # Melayani portal di root domain / dan /portal/ serta static assets
     # =========================================================================
     ProxyPass /portal/ http://127.0.0.1:8090/
+    ProxyPassReverse /portal/ http://127.0.0.1:8090/
+
+    ProxyPass /assets/ http://127.0.0.1:8090/assets/
+    ProxyPassReverse /assets/ http://127.0.0.1:8090/assets/
+
+    ProxyPass /favicon.svg http://127.0.0.1:8090/favicon.svg
+    ProxyPassReverse /favicon.svg http://127.0.0.1:8090/favicon.svg
+
+    ProxyPass /login http://127.0.0.1:8090/
+    ProxyPassReverse /login http://127.0.0.1:8090/
+
+    # Fallback untuk root / jika tidak cocok dengan file lokal
+    ProxyPass / http://127.0.0.1:8090/
+    ProxyPassReverse / http://127.0.0.1:8090/
     ProxyPassReverse /portal/ http://127.0.0.1:8090/
 
     ProxyPass /portal http://127.0.0.1:8090/
