@@ -149,16 +149,28 @@ export function saveUserSession(user: UserProfile, rememberMe: boolean = false):
   }
 
   // Set companion authentication flag cookie for proxy alignment
-  try {
-    const maxAgeSec = Math.floor(duration / 1000);
-    document.cookie = `soc_auth=1; path=/; max-age=${maxAgeSec}; SameSite=Lax; Secure`;
-    document.cookie = `portal_session=active; path=/; max-age=${maxAgeSec}; SameSite=Lax; Secure`;
-  } catch {
-    // ignore in environments without cookie access
-  }
+  refreshAuthCookie();
 
   resetLockoutState();
   return sessionUser;
+}
+
+/**
+ * Ensure auth cookies are active across HTTP and HTTPS for seamless proxy handoff
+ */
+export function refreshAuthCookie(): void {
+  try {
+    const duration = SECURITY_CONFIG.SESSION_DURATION_MS;
+    const maxAgeSec = Math.floor(duration / 1000);
+    document.cookie = `soc_auth=1; path=/; max-age=${maxAgeSec}; SameSite=Lax`;
+    document.cookie = `portal_session=active; path=/; max-age=${maxAgeSec}; SameSite=Lax`;
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+      document.cookie = `soc_auth=1; path=/; max-age=${maxAgeSec}; SameSite=Lax; Secure`;
+      document.cookie = `portal_session=active; path=/; max-age=${maxAgeSec}; SameSite=Lax; Secure`;
+    }
+  } catch {
+    // ignore in environments without cookie access
+  }
 }
 
 /**
@@ -168,5 +180,7 @@ export function terminateSession(): void {
   localStorage.removeItem(STORAGE_KEYS.USER);
   localStorage.removeItem('soc-auth');
   document.cookie = 'soc_auth=; path=/; max-age=0; SameSite=Lax';
+  document.cookie = 'soc_auth=; path=/; max-age=0; SameSite=Lax; Secure';
   document.cookie = 'portal_session=; path=/; max-age=0; SameSite=Lax';
+  document.cookie = 'portal_session=; path=/; max-age=0; SameSite=Lax; Secure';
 }

@@ -153,6 +153,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         resetLockoutState();
         const sessionUser = saveUserSession(authenticatedUser, rememberMe);
         onLoginSuccess(sessionUser);
+
+        // Check if there is a redirection target ('next' query parameter)
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const nextTarget = params.get('next');
+          if (nextTarget && nextTarget.startsWith('/') && !nextTarget.startsWith('//') && !nextTarget.startsWith('/login')) {
+            window.location.replace(nextTarget);
+            return;
+          }
+        } catch {
+          // ignore
+        }
         return;
       }
 

@@ -23,7 +23,7 @@ import { RightSidebar } from './components/RightSidebar';
 import { AddAppModal } from './components/AddAppModal';
 import { LoginPage } from './components/LoginPage';
 import { NotificationsModal, HelpModal, SettingsModal, ConfirmDeleteModal } from './components/Modals';
-import { isSessionValid, terminateSession, saveUserSession } from './utils/security';
+import { isSessionValid, terminateSession, saveUserSession, refreshAuthCookie } from './utils/security';
 
 const STORAGE_KEYS = {
   APPS: 'clipan_portal_apps_v1',
@@ -219,6 +219,12 @@ export default function App() {
     };
     setActivities((prev) => [newActivity, ...prev.filter((a) => a.appId !== app.id)].slice(0, 10));
 
+    // Special handoff for Sentinel SOC Command Center
+    if (app.id === 'sentinel-soc') {
+      refreshAuthCookie();
+      saveUserSession(user);
+    }
+
     if (newTab) {
       window.open(app.url, '_blank', 'noopener,noreferrer');
     } else {
@@ -337,9 +343,49 @@ export default function App() {
     };
   }, [apps]);
 
-  // If user is not authenticated, display the full animated Portal Login Page!
-  if (!user.isLoggedIn || !isSessionValid(user)) {
+  // Check if current URL is the login page or has a next parameter
+  const isLoginRoute = typeof window !== 'undefined' && (
+    window.location.pathname.startsWith('/login') ||
+    Boolean(new URLSearchParams(window.location.search).get('next'))
+  );
+  const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const nextTarget = urlParams?.get('next');
+  const reason = urlParams?.get('reason');
+
+  // Handle expired/idle timeout query - clear stale session to require fresh login
+  useEffect(() => {
+    if (reason === 'expired' || reason === 'idle_timeout') {
+      terminateSession();
+      setUser({
+        id: 0,
+        name: '',
+        username: '',
+        role: '',
+        isLoggedIn: false,
+      });
+    }
+  }, [reason]);
+
+  // Keep cookies fresh when authenticated
+  useEffect(() => {
+    if (user.isLoggedIn && isSessionValid(user)) {
+      refreshAuthCookie();
+    }
+  }, [user]);
+
+  // If on login route and session was expired, or not logged in, show LoginPage
+  if (!user.isLoggedIn || !isSessionValid(user) || (isLoginRoute && (reason === 'expired' || reason === 'idle_timeout'))) {
     return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  // If already authenticated and visiting /login?next=... (without expired reason), automatically redirect to target app!
+  if (isLoginRoute && nextTarget && !reason) {
+    if (nextTarget.startsWith('/') && !nextTarget.startsWith('//') && !nextTarget.startsWith('/login')) {
+      refreshAuthCookie();
+      saveUserSession(user);
+      window.location.replace(nextTarget);
+      return null;
+    }
   }
 
   // Once authenticated, render the full Clipan Portal Dashboard
