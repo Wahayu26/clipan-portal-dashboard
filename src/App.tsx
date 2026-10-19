@@ -103,8 +103,8 @@ export default function App() {
         const parsed: AppItem[] = JSON.parse(saved);
         const updated = parsed.map((item) => {
           const initial = INITIAL_APPS.find((i) => i.id === item.id);
-          if (initial && (item.id === 'sentinel-soc' || item.url !== initial.url)) {
-            return { ...item, url: initial.url };
+          if (initial && (item.id === 'sentinel-soc' || item.url !== initial.url || item.name !== initial.name)) {
+            return { ...item, url: initial.url, name: initial.name, description: initial.description };
           }
           return item;
         });

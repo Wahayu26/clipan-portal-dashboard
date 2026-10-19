@@ -587,9 +587,9 @@ export const INITIAL_APPS: AppItem[] = [
   },
   {
     id: 'pooler',
-    name: 'Network SNMP Poller',
-    description: 'High-frequency telemetry polling daemon, SNMP worker status & device metric harvest.',
-    url: '/pooler/',
+    name: 'LibreNMS Poller Trigger',
+    description: 'LibreNMS telemetry polling daemon, SNMP worker status & trigger console.',
+    url: '/pooler/poller-1.php',
     category: 'monitoring',
     iconName: 'Server',
     accentColor: '#0284c7',
