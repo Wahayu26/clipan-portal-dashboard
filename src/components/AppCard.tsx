@@ -15,6 +15,7 @@ interface AppCardProps {
   app: AppItem;
   onLaunch: (app: AppItem, newTab?: boolean) => void;
   onToggleFavorite: (appId: string) => void;
+  onDeleteApp?: (app: AppItem) => void;
   onDeleteCustom?: (appId: string) => void;
 }
 
@@ -22,6 +23,7 @@ export const AppCard: React.FC<AppCardProps> = ({
   app,
   onLaunch,
   onToggleFavorite,
+  onDeleteApp,
   onDeleteCustom,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -112,17 +114,22 @@ export const AppCard: React.FC<AppCardProps> = ({
                   <span>{copied ? 'Link Copied!' : 'Copy Link'}</span>
                 </button>
 
-                {app.isCustom && onDeleteCustom && (
+                {(onDeleteApp || (app.isCustom && onDeleteCustom)) && (
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setMenuOpen(false);
-                      onDeleteCustom(app.id);
+                      if (onDeleteApp) {
+                        onDeleteApp(app);
+                      } else if (onDeleteCustom) {
+                        onDeleteCustom(app.id);
+                      }
                     }}
                     className="tab-btn"
                     style={{ fontSize: '12px', padding: '6px 10px', width: '100%', justifyContent: 'flex-start', color: '#f43f5e' }}
                   >
-                    <Trash2 size={14} />
-                    <span>Delete App</span>
+                    <Trash2 size={14} color="#f43f5e" />
+                    <span style={{ color: '#f43f5e' }}>Delete App</span>
                   </button>
                 )}
               </div>

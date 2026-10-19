@@ -1,4 +1,4 @@
-import { Star, ExternalLink } from 'lucide-react';
+import { Star, ExternalLink, Trash2 } from 'lucide-react';
 import type { AppItem } from '../types';
 import { DynamicIcon } from './DynamicIcon';
 
@@ -6,12 +6,14 @@ interface AppListViewProps {
   apps: AppItem[];
   onLaunch: (app: AppItem, newTab?: boolean) => void;
   onToggleFavorite: (appId: string) => void;
+  onDeleteApp?: (app: AppItem) => void;
 }
 
 export const AppListView: React.FC<AppListViewProps> = ({
   apps,
   onLaunch,
   onToggleFavorite,
+  onDeleteApp,
 }) => {
   return (
     <div 
@@ -93,19 +95,34 @@ export const AppListView: React.FC<AppListViewProps> = ({
                 {app.description}
               </td>
 
-              {/* Launch */}
+              {/* Launch & Delete */}
               <td style={{ padding: '14px 20px', textAlign: 'right' }}>
-                <button 
-                  className="btn-secondary" 
-                  style={{ padding: '6px 12px', fontSize: '12px' }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onLaunch(app, true);
-                  }}
-                >
-                  <span>Open</span>
-                  <ExternalLink size={12} />
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+                  <button 
+                    className="btn-secondary" 
+                    style={{ padding: '6px 12px', fontSize: '12px' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onLaunch(app, true);
+                    }}
+                  >
+                    <span>Open</span>
+                    <ExternalLink size={12} />
+                  </button>
+                  {onDeleteApp && (
+                    <button
+                      className="action-icon-btn"
+                      style={{ color: '#f43f5e' }}
+                      title={`Hapus ${app.name}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteApp(app);
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
               </td>
             </tr>
           ))}

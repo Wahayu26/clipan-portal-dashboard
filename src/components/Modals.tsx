@@ -1,4 +1,6 @@
-import { X, Bell, HelpCircle, Settings, Phone, Mail, Server, RotateCcw } from 'lucide-react';
+import { X, Bell, HelpCircle, Settings, Phone, Mail, Server, RotateCcw, Trash2 } from 'lucide-react';
+import type { AppItem } from '../types';
+import { DynamicIcon } from './DynamicIcon';
 
 interface ModalProps {
   isOpen: boolean;
@@ -168,3 +170,64 @@ export const SettingsModal: React.FC<ModalProps & { onResetData: () => void }> =
     </div>
   );
 };
+
+export const ConfirmDeleteModal: React.FC<{
+  isOpen: boolean;
+  app: AppItem | null;
+  onClose: () => void;
+  onConfirm: (appId: string) => void;
+}> = ({ isOpen, app, onClose, onConfirm }) => {
+  if (!isOpen || !app) return null;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-window" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(244, 63, 94, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f43f5e' }}>
+              <Trash2 size={18} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Hapus Aplikasi</h3>
+              <p style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Konfirmasi penghapusan aplikasi dari portal</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="action-icon-btn"><X size={18} /></button>
+        </div>
+
+        <div style={{ padding: '14px', borderRadius: '10px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-card)', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+            <div style={{ width: '28px', height: '28px', borderRadius: '7px', background: app.bgGradient, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+              <DynamicIcon name={app.iconName} size={15} color="#fff" />
+            </div>
+            <strong style={{ fontSize: '13.5px', color: 'var(--text-primary)' }}>{app.name}</strong>
+          </div>
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+            Apakah Anda yakin ingin menghapus aplikasi ini dari daftar portal? Aplikasi tidak akan ditampilkan lagi di halaman dashboard.
+          </p>
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px' }}>
+            * Anda selalu dapat mengembalikannya kapan saja melalui menu <strong>Settings &gt; Reset Portal Data</strong>.
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <button onClick={onClose} className="btn-secondary" style={{ padding: '8px 16px', fontSize: '12.5px' }}>
+            Batal
+          </button>
+          <button
+            onClick={() => {
+              onConfirm(app.id);
+              onClose();
+            }}
+            className="btn-primary"
+            style={{ padding: '8px 16px', fontSize: '12.5px', background: 'linear-gradient(135deg, #f43f5e, #e11d48)', borderColor: '#e11d48' }}
+          >
+            <Trash2 size={14} />
+            <span>Hapus Aplikasi</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+

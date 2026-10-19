@@ -22,7 +22,7 @@ import { AppListView } from './components/AppListView';
 import { RightSidebar } from './components/RightSidebar';
 import { AddAppModal } from './components/AddAppModal';
 import { LoginPage } from './components/LoginPage';
-import { NotificationsModal, HelpModal, SettingsModal } from './components/Modals';
+import { NotificationsModal, HelpModal, SettingsModal, ConfirmDeleteModal } from './components/Modals';
 import { isSessionValid, terminateSession, saveUserSession } from './utils/security';
 
 const STORAGE_KEYS = {
@@ -31,6 +31,7 @@ const STORAGE_KEYS = {
   THEME: 'clipan_portal_theme',
   VIEW_MODE: 'clipan_portal_view_mode',
   USER: 'clipan_portal_user',
+  DELETED_APPS: 'clipan_portal_deleted_apps_v1',
 };
 
 export default function App() {
@@ -91,9 +92,12 @@ export default function App() {
     }
   });
 
-  // Apps state with localStorage persistence
+  // Apps state with localStorage persistence and deleted app tracking
   const [apps, setApps] = useState<AppItem[]>(() => {
     try {
+      const deletedRaw = localStorage.getItem(STORAGE_KEYS.DELETED_APPS);
+      const deletedIds = new Set<string>(deletedRaw ? JSON.parse(deletedRaw) : []);
+
       const saved = localStorage.getItem(STORAGE_KEYS.APPS);
       if (saved) {
         const parsed: AppItem[] = JSON.parse(saved);
@@ -105,12 +109,12 @@ export default function App() {
           return item;
         });
 
-        // Automatically append any newly added apps from INITIAL_APPS
+        // Automatically append any newly added apps from INITIAL_APPS (excluding apps deleted by user)
         const existingIds = new Set(updated.map((a) => a.id));
-        const newApps = INITIAL_APPS.filter((a) => !existingIds.has(a.id));
-        return [...updated, ...newApps];
+        const newApps = INITIAL_APPS.filter((a) => !existingIds.has(a.id) && !deletedIds.has(a.id));
+        return [...updated.filter((a) => !deletedIds.has(a.id)), ...newApps];
       }
-      return INITIAL_APPS;
+      return INITIAL_APPS.filter((a) => !deletedIds.has(a.id));
     } catch {
       return INITIAL_APPS;
     }
@@ -140,6 +144,7 @@ export default function App() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [appToDelete, setAppToDelete] = useState<AppItem | null>(null);
 
   // Sync theme attribute
   useEffect(() => {
@@ -238,15 +243,42 @@ export default function App() {
     setApps((prev) => [newApp, ...prev]);
   };
 
-  const handleDeleteCustom = (appId: string) => {
+  const handleRequestDeleteApp = (app: AppItem) => {
+    setAppToDelete(app);
+  };
+
+  const handleConfirmDeleteApp = (appId: string) => {
+    // 1. Simpan ke daftar DELETED_APPS di localStorage
+    try {
+      const deletedRaw = localStorage.getItem(STORAGE_KEYS.DELETED_APPS);
+      const deletedArr: string[] = deletedRaw ? JSON.parse(deletedRaw) : [];
+      if (!deletedArr.includes(appId)) {
+        deletedArr.push(appId);
+        localStorage.setItem(STORAGE_KEYS.DELETED_APPS, JSON.stringify(deletedArr));
+      }
+    } catch {
+      // ignore
+    }
+
+    // 2. Filter dari state apps
     setApps((prev) => prev.filter((a) => a.id !== appId));
+
+    // 3. Bersihkan dari recent activities jika ada
+    setActivities((prev) => prev.filter((act) => act.appId !== appId));
+
+    setAppToDelete(null);
+  };
+
+  const handleDeleteCustom = (appId: string) => {
+    handleConfirmDeleteApp(appId);
   };
 
   const handleResetData = () => {
-    setApps(INITIAL_APPS);
-    setActivities(INITIAL_ACTIVITIES);
+    localStorage.removeItem(STORAGE_KEYS.DELETED_APPS);
     localStorage.removeItem(STORAGE_KEYS.APPS);
     localStorage.removeItem(STORAGE_KEYS.ACTIVITIES);
+    setApps(INITIAL_APPS);
+    setActivities(INITIAL_ACTIVITIES);
   };
 
   // Filtered & Sorted Apps
@@ -452,6 +484,7 @@ export default function App() {
                       app={app}
                       onLaunch={handleLaunchApp}
                       onToggleFavorite={handleToggleFavorite}
+                      onDeleteApp={handleRequestDeleteApp}
                       onDeleteCustom={handleDeleteCustom}
                     />
                   ))}
@@ -477,6 +510,7 @@ export default function App() {
                   apps={displayedApps}
                   onLaunch={handleLaunchApp}
                   onToggleFavorite={handleToggleFavorite}
+                  onDeleteApp={handleRequestDeleteApp}
                 />
               )
             ) : (
@@ -553,6 +587,13 @@ export default function App() {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         onResetData={handleResetData}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={!!appToDelete}
+        app={appToDelete}
+        onClose={() => setAppToDelete(null)}
+        onConfirm={handleConfirmDeleteApp}
       />
     </div>
   );
