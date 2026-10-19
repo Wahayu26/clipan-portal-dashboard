@@ -585,6 +585,18 @@ export const INITIAL_APPS: AppItem[] = [
     status: 'online',
     launchCount: 12,
   },
+  {
+    id: 'pooler',
+    name: 'Network SNMP Poller',
+    description: 'High-frequency telemetry polling daemon, SNMP worker status & device metric harvest.',
+    url: '/pooler/',
+    category: 'monitoring',
+    iconName: 'Server',
+    accentColor: '#0284c7',
+    bgGradient: 'linear-gradient(135deg, #38bdf8, #0369a1)',
+    status: 'online',
+    launchCount: 15,
+  },
 
   // ==========================================
   // OPERATIONS & ITOM
