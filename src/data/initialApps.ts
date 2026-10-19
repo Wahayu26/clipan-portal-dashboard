@@ -478,6 +478,18 @@ export const INITIAL_APPS: AppItem[] = [
     launchCount: 21,
   },
   {
+    id: 'apm',
+    name: 'Application Performance Monitor (APM)',
+    description: 'Enterprise APM telemetry, transaction tracing, latency & server node metrics.',
+    url: '/apm/',
+    category: 'monitoring',
+    iconName: 'Gauge',
+    accentColor: '#8b5cf6',
+    bgGradient: 'linear-gradient(135deg, #a78bfa, #7c3aed)',
+    status: 'online',
+    launchCount: 22,
+  },
+  {
     id: 'netflow',
     name: 'Netflow Traffic Analyzer',
     description: 'Flow-based traffic breakdown, top talker hosts & application protocol mix.',
