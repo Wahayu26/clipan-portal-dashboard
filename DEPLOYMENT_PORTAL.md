@@ -145,19 +145,28 @@ Pastikan rute root (`/`) atau `/portal/` mengarah ke portal ini, sementara semua
     ProxyPass /traffic-isfw !
     ProxyPass /traffic-branch !
     ProxyPass /switch !
+    ProxyPass /switch-config !
     ProxyPass /pushconfig !
     ProxyPass /dashboard-noc !
+    ProxyPass /dashboard-librenms !
+    ProxyPass /dashboard-app !
     ProxyPass /room-noc !
     ProxyPass /noc-office !
     ProxyPass /interface !
     ProxyPass /interface-10mb !
+    ProxyPass /interface-error !
+    ProxyPass /forti-isfw-detail !
     ProxyPass /fmg !
     ProxyPass /palo !
+    ProxyPass /config-palo !
+    ProxyPass /config-isfw !
     ProxyPass /ipsec-palo !
     ProxyPass /ipsec-branch !
     ProxyPass /incident !
+    ProxyPass /incident-native !
     ProxyPass /security !
     ProxyPass /netsec-hub !
+    ProxyPass /netsec !
     ProxyPass /grafana !
     ProxyPass /grafana-ap !
     ProxyPass /monitor-db !
@@ -165,9 +174,13 @@ Pastikan rute root (`/`) atau `/portal/` mengarah ke portal ini, sementara semua
     ProxyPass /zabbix !
     ProxyPass /zabbix-server-dashboard !
     ProxyPass /nms !
+    ProxyPass /api-nms !
     ProxyPass /librenms-intelligence-portal !
     ProxyPass /librenms-port !
     ProxyPass /weather !
+    ProxyPass /weathermap !
+    ProxyPass /weathermap-1 !
+    ProxyPass "/weathermap 1" !
     ProxyPass /weathermap-new !
     ProxyPass /rancid !
     ProxyPass /oxidized !
@@ -176,15 +189,33 @@ Pastikan rute root (`/`) atau `/portal/` mengarah ke portal ini, sementara semua
     ProxyPass /syslog !
     ProxyPass /netflow !
     ProxyPass /ping-plotter !
+    ProxyPass /ping !
     ProxyPass /tracert !
     ProxyPass /temperatur !
     ProxyPass /erp !
+    ProxyPass /erp-new !
     ProxyPass /tiket !
     ProxyPass /logbook !
     ProxyPass /rca !
     ProxyPass /kitab !
     ProxyPass /netasset !
     ProxyPass /ruckus !
+    ProxyPass /astinet !
+    ProxyPass /clipannetwork !
+    ProxyPass /lldp !
+    ProxyPass /ipmap !
+    ProxyPass /power !
+    ProxyPass /jarvis !
+    ProxyPass /hub !
+    ProxyPass /aplikasi !
+    ProxyPass /apm !
+    ProxyPass /app !
+    ProxyPass /database !
+    ProxyPass /pooler !
+    ProxyPass /ppt !
+    ProxyPass /server !
+    ProxyPass /soc !
+    ProxyPass /soc-dashboard-1 !
 
     # =========================================================================
     # 3. BACKEND API & WEBSOCKET PORTAL (Port 8091)
