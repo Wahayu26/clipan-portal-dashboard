@@ -174,6 +174,54 @@ export default function App() {
     localStorage.setItem(STORAGE_KEYS.VIEW_MODE, viewMode);
   }, [viewMode]);
 
+  // Periodic multi-user synchronization with Server (Database) for deleted apps
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchServerDeletedApps = async () => {
+      try {
+        let res = await fetch('/api/portal/deleted-apps');
+        if (!res.ok) {
+          res = await fetch('/api/deleted-apps');
+        }
+
+        if (res.ok) {
+          const data = await res.json();
+          const serverDeletedIds: string[] = Array.isArray(data.deleted_app_ids)
+            ? data.deleted_app_ids
+            : [];
+
+          if (serverDeletedIds.length > 0 && isMounted) {
+            try {
+              const localRaw = localStorage.getItem(STORAGE_KEYS.DELETED_APPS);
+              const localArr: string[] = localRaw ? JSON.parse(localRaw) : [];
+              const merged = Array.from(new Set([...localArr, ...serverDeletedIds]));
+              localStorage.setItem(STORAGE_KEYS.DELETED_APPS, JSON.stringify(merged));
+            } catch {
+              // ignore
+            }
+
+            const delSet = new Set(serverDeletedIds);
+            setApps((prev) => {
+              const needsFiltering = prev.some((a) => delSet.has(a.id));
+              return needsFiltering ? prev.filter((a) => !delSet.has(a.id)) : prev;
+            });
+          }
+        }
+      } catch {
+        // ignore network error
+      }
+    };
+
+    fetchServerDeletedApps();
+    const pollInterval = setInterval(fetchServerDeletedApps, 15000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(pollInterval);
+    };
+  }, []);
+
   // Periodic session validity check (every 30 seconds)
   useEffect(() => {
     if (!user.isLoggedIn) return;
@@ -313,6 +361,42 @@ export default function App() {
     // 3. Bersihkan dari recent activities jika ada
     setActivities((prev) => prev.filter((act) => act.appId !== appId));
 
+    // 4. Sinkronkan DELETE ke backend server secara terintegrasi multi-user
+    const syncDeleteToServer = async (id: string) => {
+      const payload = { id, username: user.username || 'portal_user' };
+      try {
+        let res = await fetch(`/api/portal/apps/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          res = await fetch(`/api/portal/apps/${encodeURIComponent(id)}/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+        }
+        if (!res.ok) {
+          res = await fetch(`/api/apps/${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+        }
+        if (!res.ok) {
+          await fetch(`/api/apps/${encodeURIComponent(id)}/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+        }
+      } catch (err) {
+        console.warn('Network error syncing deleted app to server:', err);
+      }
+    };
+    syncDeleteToServer(appId);
+
     setAppToDelete(null);
   };
 
@@ -326,6 +410,10 @@ export default function App() {
     localStorage.removeItem(STORAGE_KEYS.ACTIVITIES);
     setApps(INITIAL_APPS);
     setActivities(INITIAL_ACTIVITIES);
+
+    // Sinkronkan reset ke server backend
+    fetch('/api/portal/deleted-apps/reset', { method: 'POST' })
+      .catch(() => fetch('/api/deleted-apps/reset', { method: 'POST' }).catch(() => {}));
   };
 
   // Filtered & Sorted Apps
