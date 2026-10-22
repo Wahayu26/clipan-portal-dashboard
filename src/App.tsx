@@ -21,6 +21,8 @@ import { AppCard } from './components/AppCard';
 import { AppListView } from './components/AppListView';
 import { RightSidebar } from './components/RightSidebar';
 import { AddAppModal } from './components/AddAppModal';
+import { EditAppModal } from './components/EditAppModal';
+import { ManageAppsModal } from './components/ManageAppsModal';
 import { LoginPage } from './components/LoginPage';
 import { NotificationsModal, HelpModal, SettingsModal, ConfirmDeleteModal } from './components/Modals';
 import { isSessionValid, terminateSession, saveUserSession, refreshAuthCookie } from './utils/security';
@@ -102,6 +104,9 @@ export default function App() {
       if (saved) {
         const parsed: AppItem[] = JSON.parse(saved);
         const updated = parsed.map((item) => {
+          if (item.isEdited) {
+            return item;
+          }
           const initial = INITIAL_APPS.find((i) => i.id === item.id);
           if (initial && (item.id === 'sentinel-soc' || item.url !== initial.url || item.name !== initial.name)) {
             return { ...item, url: initial.url, name: initial.name, description: initial.description };
@@ -141,6 +146,8 @@ export default function App() {
 
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+  const [appToEdit, setAppToEdit] = useState<AppItem | null>(null);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -241,6 +248,46 @@ export default function App() {
 
   const handleAddApp = (newApp: AppItem) => {
     setApps((prev) => [newApp, ...prev]);
+  };
+
+  const handleRequestEditApp = (app: AppItem) => {
+    setAppToEdit(app);
+  };
+
+  const handleSaveEditApp = (updatedApp: AppItem) => {
+    const withEdited: AppItem = {
+      ...updatedApp,
+      isEdited: true,
+    };
+    setApps((prev) =>
+      prev.map((item) => (item.id === withEdited.id ? withEdited : item))
+    );
+
+    // Sync with recent activities if recently opened
+    setActivities((prev) =>
+      prev.map((act) =>
+        act.appId === withEdited.id
+          ? {
+              ...act,
+              appName: withEdited.name,
+              category: withEdited.category,
+              iconName: withEdited.iconName,
+              accentColor: withEdited.accentColor,
+            }
+          : act
+      )
+    );
+    setAppToEdit(null);
+  };
+
+  const handleResetSingleApp = (appId: string) => {
+    const initial = INITIAL_APPS.find((a) => a.id === appId);
+    if (initial) {
+      setApps((prev) =>
+        prev.map((item) => (item.id === appId ? { ...initial } : item))
+      );
+    }
+    setAppToEdit(null);
   };
 
   const handleRequestDeleteApp = (app: AppItem) => {
@@ -423,7 +470,7 @@ export default function App() {
                   const el = document.getElementById('apps-section');
                   el?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                onManage={() => setIsAddModalOpen(true)}
+                onManage={() => setIsManageModalOpen(true)}
               />
             )}
 
@@ -524,6 +571,7 @@ export default function App() {
                       app={app}
                       onLaunch={handleLaunchApp}
                       onToggleFavorite={handleToggleFavorite}
+                      onEditApp={handleRequestEditApp}
                       onDeleteApp={handleRequestDeleteApp}
                       onDeleteCustom={handleDeleteCustom}
                     />
@@ -550,6 +598,7 @@ export default function App() {
                   apps={displayedApps}
                   onLaunch={handleLaunchApp}
                   onToggleFavorite={handleToggleFavorite}
+                  onEditApp={handleRequestEditApp}
                   onDeleteApp={handleRequestDeleteApp}
                 />
               )
@@ -611,6 +660,25 @@ export default function App() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAddApp={handleAddApp}
+      />
+
+      <EditAppModal
+        isOpen={!!appToEdit}
+        app={appToEdit}
+        onClose={() => setAppToEdit(null)}
+        onSaveApp={handleSaveEditApp}
+        onResetApp={handleResetSingleApp}
+      />
+
+      <ManageAppsModal
+        isOpen={isManageModalOpen}
+        apps={apps}
+        onClose={() => setIsManageModalOpen(false)}
+        onEditApp={handleRequestEditApp}
+        onDeleteApp={handleRequestDeleteApp}
+        onOpenAddModal={() => setIsAddModalOpen(true)}
+        onToggleFavorite={handleToggleFavorite}
+        onLaunchApp={(app) => handleLaunchApp(app, true)}
       />
 
       <NotificationsModal

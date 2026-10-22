@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Star, 
   MoreVertical, 
@@ -6,6 +6,7 @@ import {
   Copy, 
   Check, 
   Trash2,
+  Pencil,
   ArrowUpRight 
 } from 'lucide-react';
 import type { AppItem } from '../types';
@@ -15,6 +16,7 @@ interface AppCardProps {
   app: AppItem;
   onLaunch: (app: AppItem, newTab?: boolean) => void;
   onToggleFavorite: (appId: string) => void;
+  onEditApp?: (app: AppItem) => void;
   onDeleteApp?: (app: AppItem) => void;
   onDeleteCustom?: (appId: string) => void;
 }
@@ -23,11 +25,31 @@ export const AppCard: React.FC<AppCardProps> = ({
   app,
   onLaunch,
   onToggleFavorite,
+  onEditApp,
   onDeleteApp,
   onDeleteCustom,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [menuOpen]);
 
   const handleCopyLink = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -65,7 +87,7 @@ export const AppCard: React.FC<AppCardProps> = ({
           </button>
 
           {/* 3-Dots Action Dropdown */}
-          <div style={{ position: 'relative' }}>
+          <div ref={menuRef} style={{ position: 'relative' }}>
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               className="action-icon-btn"
@@ -113,6 +135,21 @@ export const AppCard: React.FC<AppCardProps> = ({
                   {copied ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
                   <span>{copied ? 'Link Copied!' : 'Copy Link'}</span>
                 </button>
+
+                {onEditApp && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMenuOpen(false);
+                      onEditApp(app);
+                    }}
+                    className="tab-btn"
+                    style={{ fontSize: '12px', padding: '6px 10px', width: '100%', justifyContent: 'flex-start' }}
+                  >
+                    <Pencil size={14} color="var(--accent-primary)" />
+                    <span>Edit App</span>
+                  </button>
+                )}
 
                 {(onDeleteApp || (app.isCustom && onDeleteCustom)) && (
                   <button

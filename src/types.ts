@@ -13,6 +13,7 @@ export interface AppItem {
   status: 'online' | 'maintenance' | 'offline';
   isFavorite?: boolean;
   isCustom?: boolean;
+  isEdited?: boolean;
   launchCount: number;
   lastOpenedAt?: number; // timestamp
 }

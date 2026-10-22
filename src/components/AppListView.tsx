@@ -1,4 +1,4 @@
-import { Star, ExternalLink, Trash2 } from 'lucide-react';
+import { Star, ExternalLink, Trash2, Pencil } from 'lucide-react';
 import type { AppItem } from '../types';
 import { DynamicIcon } from './DynamicIcon';
 
@@ -6,6 +6,7 @@ interface AppListViewProps {
   apps: AppItem[];
   onLaunch: (app: AppItem, newTab?: boolean) => void;
   onToggleFavorite: (appId: string) => void;
+  onEditApp?: (app: AppItem) => void;
   onDeleteApp?: (app: AppItem) => void;
 }
 
@@ -13,6 +14,7 @@ export const AppListView: React.FC<AppListViewProps> = ({
   apps,
   onLaunch,
   onToggleFavorite,
+  onEditApp,
   onDeleteApp,
 }) => {
   return (
@@ -109,6 +111,19 @@ export const AppListView: React.FC<AppListViewProps> = ({
                     <span>Open</span>
                     <ExternalLink size={12} />
                   </button>
+                  {onEditApp && (
+                    <button
+                      className="action-icon-btn"
+                      style={{ color: 'var(--accent-primary)' }}
+                      title={`Edit ${app.name}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditApp(app);
+                      }}
+                    >
+                      <Pencil size={14} />
+                    </button>
+                  )}
                   {onDeleteApp && (
                     <button
                       className="action-icon-btn"
