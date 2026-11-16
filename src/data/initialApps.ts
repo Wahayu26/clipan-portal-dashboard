@@ -735,6 +735,30 @@ export const INITIAL_APPS: AppItem[] = [
     status: 'online',
     launchCount: 14,
   },
+  {
+    id: 'store',
+    name: 'Clipan Store',
+    description: '',
+    url: '/store/',
+    category: 'operations',
+    iconName: 'Store',
+    accentColor: '#10b981',
+    bgGradient: 'linear-gradient(135deg, #34d399, #059669)',
+    status: 'online',
+    launchCount: 0,
+  },
+  {
+    id: 'tandapro',
+    name: 'TandaPro',
+    description: '',
+    url: '/tandapro/',
+    category: 'operations',
+    iconName: 'FileSignature',
+    accentColor: '#0ea5e9',
+    bgGradient: 'linear-gradient(135deg, #38bdf8, #0284c7)',
+    status: 'online',
+    launchCount: 0,
+  },
 ];
 
 export const INITIAL_ACTIVITIES: ActivityLog[] = [
